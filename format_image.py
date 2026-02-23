@@ -3,7 +3,7 @@ import tifffile
 import numpy as np
 
 
-image_path = "batman.jpg"
+image_path = "star.png"
 image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)  # load in image
 
 # resize image
