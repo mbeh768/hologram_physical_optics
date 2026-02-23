@@ -32,15 +32,32 @@ cell_size = 8
 G_mag_norm_quant = np.round( cell_size * G_mag_norm )
 
 # plot quantized magnitude histogram
-plt.hist(G_mag_norm_quant.astype(int).flatten(), bins=8, edgecolor='black')
+plt.hist(G_mag_norm_quant.astype(int).flatten(), bins=cell_size, edgecolor='black')
 plt.title("Histogram of quantized magnitude")
 plt.show()
 
-# quantize phase
-G_phase_quant = np.round( cell_size * G_phase / (2 * np.pi) - 1/2)
+# quantization with error diffusion
+error_diffusion = True
+
+if error_diffusion:
+    G_phase_quant = np.zeros_like(G_phase)
+    error = np.complex64(0.0)
+    for i, phi in enumerate(G_phase.flatten()):
+        phi_with_error = np.angle( np.exp(1j * phi) + error )
+        bin_index = np.floor( cell_size * (phi_with_error + np.pi) / (2 * np.pi) ) # [0, 2]
+        G_phase_quant.flat[i] = bin_index                                    # write quantized phase to array
+
+        # convert quantized phase into radians
+        phi_quant_rads = (bin_index + 0.5) * (2 * np.pi / cell_size) - np.pi
+
+        # calculate complex error
+        error = np.exp(1j * phi) - np.exp(1j * phi_quant_rads)
+
+else:
+    G_phase_quant = np.floor( cell_size * (G_phase + np.pi) / (2 * np.pi) ) # [0, 2]
 
 # plot quantized phase histogram
-plt.hist(G_phase_quant.astype(int).flatten(), bins=8, edgecolor='black')
+plt.hist(G_phase_quant.astype(int).flatten(), bins=cell_size, edgecolor='black')
 plt.title("Histogram of quantized phase")
 plt.show()
 
@@ -54,7 +71,9 @@ for y_G, y in enumerate(range(0, canvas.shape[0], cell_size)):
 
         # write the cell array
         cell = np.zeros( (cell_size, cell_size) )
-        cell[:magnitude, phase+4] = 1 # fill vertical line at appropriate coord
+
+        # fill vertical line at appropriate coord
+        cell[:magnitude, phase] = 1 
 
         # show the first cell produced
         if y_G == 0 and x_G == 0:
